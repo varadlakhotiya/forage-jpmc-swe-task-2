@@ -14,7 +14,7 @@ interface IProps {
  * Perspective library adds load to HTMLElement prototype.
  * This interface acts as a wrapper for Typescript compiler.
  */
-interface PerspectiveViewerElement {
+interface PerspectiveViewerElement extends HTMLElement {
   load: (table: Table) => void,
 }
 
@@ -31,8 +31,8 @@ class Graph extends Component<IProps, {}> {
   }
 
   componentDidMount() {
-    // Get element to attach the table from the DOM.
-    const elem: PerspectiveViewerElement = document.getElementsByTagName('perspective-viewer')[0] as unknown as PerspectiveViewerElement;
+    // Get the <perspective-viewer> element from the DOM.
+    const elem = document.getElementsByTagName('perspective-viewer')[0] as PerspectiveViewerElement;
 
     const schema = {
       stock: 'string',
@@ -45,18 +45,27 @@ class Graph extends Component<IProps, {}> {
       this.table = window.perspective.worker().table(schema);
     }
     if (this.table) {
-      // Load the `table` in the `<perspective-viewer>` DOM reference.
-
-      // Add more Perspective configurations here.
+      // Load the `table` into the `<perspective-viewer>` DOM reference.
       elem.load(this.table);
+
+      // Set Perspective viewer attributes
+      elem.setAttribute('view', 'y_line'); // Set the view to y_line (continuous line graph)
+      elem.setAttribute('column-pivots', '["stock"]'); // Distinguish different stocks
+      elem.setAttribute('row-pivots', '["timestamp"]'); // Map datapoints based on timestamp
+      elem.setAttribute('columns', '["top_ask_price"]'); // Focus on top_ask_price
+      elem.setAttribute('aggregates', JSON.stringify({
+        stock: 'distinct count',
+        top_ask_price: 'avg',
+        top_bid_price: 'avg',
+        timestamp: 'distinct count',
+      })); // Consolidate data and handle duplicates
     }
   }
 
   componentDidUpdate() {
-    // Everytime the data props is updated, insert the data into Perspective table
+    // Every time the data props are updated, insert the data into Perspective table
     if (this.table) {
-      // As part of the task, you need to fix the way we update the data props to
-      // avoid inserting duplicated entries into Perspective table again.
+      // Process data to avoid inserting duplicates into the Perspective table
       this.table.update(this.props.data.map((el: any) => {
         // Format the data from ServerRespond to the schema
         return {
